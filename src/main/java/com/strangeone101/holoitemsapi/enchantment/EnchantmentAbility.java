@@ -5,6 +5,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -27,5 +28,8 @@ public interface EnchantmentAbility extends Keyed {
     }    
 
     default void onPlayerToggleSneak(PlayerToggleSneakEvent event, ItemStack itemStack) {
+    }
+
+    default void onPlayerExpChange(PlayerExpChangeEvent event, ItemStack itemStack) {
     }
 }

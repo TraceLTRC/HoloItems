@@ -1787,7 +1787,7 @@ public class CollectionManager {
     }
 
     private static Idol buildOga(HoloItemsRevamp plugin) {
-        return new Idol() {
+        return new Idol(new DemonAuraBook(plugin)) {
 
             @Override
             public @NotNull String getSkinUrl() {
