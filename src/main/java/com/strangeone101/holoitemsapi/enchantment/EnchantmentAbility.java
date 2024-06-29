@@ -3,6 +3,7 @@ package com.strangeone101.holoitemsapi.enchantment;
 import org.bukkit.Keyed;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -24,8 +25,11 @@ public interface EnchantmentAbility extends Keyed {
     }
 
     default void onPlayerInteract(PlayerInteractEvent event, ItemStack itemStack) {
-    }    
+    }
 
     default void onPlayerToggleSneak(PlayerToggleSneakEvent event, ItemStack itemStack) {
+    }
+
+    default void onPlayerAttack(EntityDamageByEntityEvent event, ItemStack itemStack) {
     }
 }

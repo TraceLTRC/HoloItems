@@ -1,11 +1,13 @@
 package com.strangeone101.holoitemsapi.enchantment;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrowableProjectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -98,5 +100,23 @@ public class EnchantmentListener implements Listener {
                 }
             });
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerAttack(EntityDamageByEntityEvent event) {
+        final var attacker = event.getDamager();
+        final var target = event.getEntity();
+
+        if(!(attacker instanceof Player attackingPlayer)) {
+            return;
+        }
+
+        // Now that I think about it, can you not attack enemies with your offhand weapon?
+        final var weapon = attackingPlayer.getInventory().getItemInMainHand();
+        weapon.getEnchantments().keySet().forEach(enchantment -> {
+            if(enchantment instanceof EnchantmentAbility ability) {
+                ability.onPlayerAttack(event, weapon);
+            }
+        });
     }
 }
