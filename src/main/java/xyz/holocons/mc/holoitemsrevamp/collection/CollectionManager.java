@@ -1051,7 +1051,7 @@ public class CollectionManager {
     }
 
     private static Idol buildFlare(HoloItemsRevamp plugin) {
-        return new Idol() {
+        return new Idol(new SplinterBook(plugin)) {
 
             @Override
             public @NotNull String getSkinUrl() {
