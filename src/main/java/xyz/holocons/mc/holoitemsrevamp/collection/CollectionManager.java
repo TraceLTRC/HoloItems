@@ -476,7 +476,7 @@ public class CollectionManager {
     }
 
     private static Idol buildAmelia(HoloItemsRevamp plugin) {
-        return new Idol() {
+        return new Idol(new GemKnifeItem(plugin)) {
 
             @Override
             public @NotNull String getSkinUrl() {
