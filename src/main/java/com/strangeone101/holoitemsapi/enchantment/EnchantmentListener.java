@@ -3,6 +3,7 @@ package com.strangeone101.holoitemsapi.enchantment;
 import java.util.function.Consumer;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrowableProjectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -10,9 +11,11 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.player.PlayerExpChangeEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 
 public class EnchantmentListener implements Listener {
 
@@ -78,6 +81,33 @@ public class EnchantmentListener implements Listener {
                 continue;
             }
             forEachEnchantment(itemStack, ability -> ability.onPlayerToggleSneak(event, itemStack));
+        }
+    }
+
+    /**
+     * Handles PlayerExpChangeEvent enchantments.
+     * Only does armor slots for now.
+     *
+     * @param event The PlayerExpChangeEvent
+     */
+    @EventHandler(ignoreCancelled = true)
+    public void onPlayerExpChange(PlayerExpChangeEvent event){
+        final Player player = event.getPlayer();
+        final PlayerInventory inventory = player.getInventory();
+        // I was copying SpaceNerden's code and didn't really understand why he didn't do this?
+        // If this is bad I'd like an explanation why.
+        final ItemStack[] armor = inventory.getArmorContents();
+
+        for(ItemStack item : armor){
+            if(item == null){
+                continue;
+            }
+
+            item.getEnchantments().keySet().forEach(enchantment -> {
+                if(enchantment instanceof EnchantmentAbility ability){
+                    ability.onPlayerExpChange(event, item);
+                }
+            });
         }
     }
 }
