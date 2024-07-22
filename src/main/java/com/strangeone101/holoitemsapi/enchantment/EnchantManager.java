@@ -110,7 +110,8 @@ public class EnchantManager {
                 new Memento(plugin),
                 new TideRider(plugin),
                 new Backdash(plugin),
-                new Plow(plugin)
+                new Plow(plugin),
+                new VerificationSeal(plugin)
         );
     }
 }

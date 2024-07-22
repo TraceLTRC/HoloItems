@@ -867,7 +867,7 @@ public class CollectionManager {
     }
 
     private static Idol buildFubuki(HoloItemsRevamp plugin) {
-        return new Idol(new PlowBook(plugin)) {
+        return new Idol(new PlowBook(plugin), new VerificationSealBook(plugin)) {
 
             @Override
             public @NotNull String getSkinUrl() {

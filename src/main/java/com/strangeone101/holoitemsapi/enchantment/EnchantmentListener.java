@@ -10,6 +10,7 @@ import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
@@ -79,5 +80,18 @@ public class EnchantmentListener implements Listener {
             }
             forEachEnchantment(itemStack, ability -> ability.onPlayerToggleSneak(event, itemStack));
         }
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onInventoryClicked(InventoryClickEvent event) {
+        final var stack = event.getCurrentItem();
+        if(stack == null) {
+            return;
+        }
+        stack.getEnchantments().keySet().forEach(enchantment -> {
+            if (enchantment instanceof EnchantmentAbility ability) {
+                ability.onInventoryClicked(event, stack);
+            }
+        });
     }
 }
