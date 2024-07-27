@@ -3,11 +3,13 @@ package com.strangeone101.holoitemsapi.enchantment;
 import java.util.function.Consumer;
 
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.entity.ThrowableProjectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.BlockBreakEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
@@ -35,6 +37,15 @@ public class EnchantmentListener implements Listener {
     public void onBlockPlace(BlockPlaceEvent event) {
         final var itemStack = event.getItemInHand();
         forEachEnchantment(itemStack, ability -> ability.onBlockPlace(event, itemStack));
+    }
+
+    @EventHandler(ignoreCancelled = true)
+    public void onEntityDamageByEntity(EntityDamageByEntityEvent event) {
+        if (!(event.getDamager() instanceof Player player)) {
+            return;
+        }
+        final var itemStack = player.getInventory().getItemInMainHand();
+        forEachEnchantment(itemStack, ability -> ability.onEntityDamageByEntity(event, itemStack));
     }
 
     @EventHandler(ignoreCancelled = true)

@@ -1741,7 +1741,7 @@ public class CollectionManager {
     }
 
     private static Idol buildTemma(HoloItemsRevamp plugin) {
-        return new Idol() {
+        return new Idol(new SSKSwordItem(plugin)) {
 
             @Override
             public @NotNull String getSkinUrl() {
