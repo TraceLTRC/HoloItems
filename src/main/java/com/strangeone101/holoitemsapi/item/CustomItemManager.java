@@ -3,11 +3,13 @@ package com.strangeone101.holoitemsapi.item;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
+import com.strangeone101.holoitemsapi.recipe.RecipeManager;
+import org.bukkit.Bukkit;
 import org.bukkit.inventory.ItemStack;
 
 import com.strangeone101.holoitemsapi.Keys;
-import com.strangeone101.holoitemsapi.recipe.RecipeManager;
 
 /**
  * A registry for managing all custom items
@@ -30,10 +32,12 @@ public class CustomItemManager {
         CUSTOM_ITEMS.put(item.getInternalName(), item);
     }
 
-    public static void lock() {
+    public static void lock(RecipeManager manager) {
         if (!locked) {
             locked = true;
-            CUSTOM_ITEMS.values().forEach(item -> RecipeManager.registerRecipe(item.getRecipe()));
+            CUSTOM_ITEMS.values().stream()
+                    .map(CustomItem::getRecipe)
+                    .forEach(manager::registerRecipe);
         }
     }
 

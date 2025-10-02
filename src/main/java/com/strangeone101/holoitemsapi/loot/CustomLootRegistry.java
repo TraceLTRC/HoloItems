@@ -67,7 +67,7 @@ public class CustomLootRegistry {
             if (entity.getKiller() == null) return;
 
             Location location = entity.getLocation();
-            int looting_mod = entity.getKiller().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.LOOT_BONUS_MOBS);
+            int looting_mod = entity.getKiller().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.LOOTING);
             double luck_mod = entity.getKiller().getAttribute(Attribute.GENERIC_LUCK).getValue();
 
             LootContext.Builder builder = new LootContext.Builder(location);
@@ -95,7 +95,7 @@ public class CustomLootRegistry {
      */
     public static void handleBlockBreak(BlockBreakEvent event) {
         if (BLOCK_TABLES.containsKey(event.getBlock().getType())) {
-            int fortune_mod = event.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.LOOT_BONUS_BLOCKS);
+            int fortune_mod = event.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.FORTUNE);
             double luck_mod = event.getPlayer().getAttribute(Attribute.GENERIC_LUCK).getValue();
             boolean silk_mod = event.getPlayer().getInventory().getItemInMainHand().getEnchantmentLevel(Enchantment.SILK_TOUCH) > 0;
 

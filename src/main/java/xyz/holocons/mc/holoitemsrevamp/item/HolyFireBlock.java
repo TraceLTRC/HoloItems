@@ -1,8 +1,10 @@
 package xyz.holocons.mc.holoitemsrevamp.item;
 
 import java.time.temporal.ChronoUnit;
+import java.util.Arrays;
 import java.util.List;
 
+import com.strangeone101.holoitemsapi.item.CustomItemManager;
 import org.bukkit.Material;
 import org.bukkit.block.Beacon;
 import org.bukkit.block.BlockFace;
@@ -13,6 +15,7 @@ import org.bukkit.event.block.BlockIgniteEvent;
 import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.util.NumberConversions;
@@ -48,12 +51,19 @@ public class HolyFireBlock extends CustomItem implements BlockAbility {
 
     @Override
     protected Recipe getRecipe() {
-        final var recipe = new ShapedRecipe(getKey(), buildStack(null));
-        recipe.shape(" a ", "aba", "ccc");
-        recipe.setIngredient('a', Material.END_ROD);
-        recipe.setIngredient('b', new CustomItemRecipeChoice("saint_quartz"));
-        recipe.setIngredient('c', Material.RAW_GOLD_BLOCK);
-        recipe.setGroup(name);
+        final var recipeKey = getKey();
+        final var outStack = buildStack(null);
+        final var recipe = new ShapedRecipe(recipeKey, outStack);
+
+        recipe.shape(
+                " E ",
+                "EQE",
+                "GGG"
+        );
+        recipe.setIngredient('E', Material.END_ROD);
+        recipe.setIngredient('G', Material.RAW_GOLD_BLOCK);
+        recipe.setIngredient('Q', new CustomItemRecipeChoice("saint_quartz"));
+
         return recipe;
     }
 

@@ -1,5 +1,8 @@
 package com.strangeone101.holoitemsapi.enchantment;
 
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 
@@ -9,10 +12,20 @@ import org.bukkit.inventory.ItemStack;
 public interface Enchantable {
 
     /**
+     * Returns the key used by the custom enchantment.
+     * @return The NamespacedKey
+     */
+    public NamespacedKey getEnchantmentKey();
+
+    /**
      * Returns the enchantment the custom item uses.
      * @return The enchantment.
      */
-    public Enchantment getEnchantment();
+    public default Enchantment getEnchantment() {
+        return RegistryAccess.registryAccess()
+                .getRegistry(RegistryKey.ENCHANTMENT)
+                .get(getEnchantmentKey());
+    }
 
     /**
      * Applies the enchantment to the itemstack.

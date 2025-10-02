@@ -1,0 +1,17 @@
+{
+    "description": "Plow",
+    "supported_items": "#minecraft:shovels",
+    "primary_items": [],
+    "weight": 1,
+    "max_level": 1,
+    "min_cost": {
+        "base": 100,
+        "per_level_above_first": 100
+    },
+    "max_cost": {
+        "base": 100,
+        "per_level_above_first": 100
+    },
+    "anvil_cost": 32,
+    "slots": ["mainhand"]
+}

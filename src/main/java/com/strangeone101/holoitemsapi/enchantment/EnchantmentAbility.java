@@ -9,7 +9,7 @@ import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerToggleSneakEvent;
 import org.bukkit.inventory.ItemStack;
 
-public interface EnchantmentAbility extends Keyed {
+public interface EnchantmentAbility {
 
     default void onBlockBreak(BlockBreakEvent event, ItemStack itemStack) {
     }

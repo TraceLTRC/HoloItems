@@ -99,15 +99,20 @@ public class AcquireCommand implements SubCommand {
         }
 
         var itemStack = customItem.buildStack(player);
-        Map<Integer, ItemStack> leftoverItems;
-        if (customItem.isStackable()) {
-            itemStack.setAmount(amount);
-            leftoverItems = player.getInventory().addItem(itemStack);
-        } else {
-            var itemStacks = new ItemStack[amount];
-            Arrays.fill(itemStacks, itemStack);
-            leftoverItems = player.getInventory().addItem(itemStacks);
-        }
+        itemStack.setAmount(customItem.getStackSizeOrDefault());
+
+        int totalItemStacks = ((amount - 1)/customItem.getStackSizeOrDefault()) + 1;
+        int lastItemStackSize = amount - ((totalItemStacks - 1) * customItem.getStackSizeOrDefault());
+        // Failsafe incase my math was bad (it was one time lol)
+        lastItemStackSize = Math.clamp(0, lastItemStackSize, customItem.getStackSizeOrDefault());
+        ItemStack lastItemStack = itemStack.clone();
+        lastItemStack.setAmount(lastItemStackSize);
+
+        var itemStacks = new ItemStack[totalItemStacks];
+        Arrays.fill(itemStacks, itemStack);
+        itemStacks[totalItemStacks - 1] = lastItemStack;
+
+        Map<Integer, ItemStack> leftoverItems = player.getInventory().addItem(itemStacks);
         // If items could not fit in player's inventory, drop them in the world
         leftoverItems.values().forEach(item -> player.getWorld().dropItemNaturally(player.getLocation(), item));
 

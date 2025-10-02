@@ -1,219 +1,166 @@
 package com.strangeone101.holoitemsapi.recipe;
 
+import com.strangeone101.holoitemsapi.enchantment.EnchantManager;
 import com.strangeone101.holoitemsapi.item.CustomItemManager;
-import org.bukkit.entity.Player;
+import io.papermc.paper.registry.RegistryAccess;
+import io.papermc.paper.registry.RegistryKey;
+import io.papermc.paper.registry.TypedKey;
+import io.papermc.paper.registry.tag.TagKey;
+import io.papermc.paper.registry.tag.Tag;
+import org.bukkit.NamespacedKey;
+import org.bukkit.block.Crafter;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.CrafterCraftEvent;
 import org.bukkit.event.inventory.CraftItemEvent;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
-import org.bukkit.event.player.PlayerRecipeDiscoverEvent;
-import org.bukkit.inventory.CraftingInventory;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.RecipeChoice;
-import org.bukkit.inventory.ShapedRecipe;
-import org.bukkit.inventory.ShapelessRecipe;
-import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.inventory.*;
 import xyz.holocons.mc.holoitemsrevamp.HoloItemsRevamp;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 
 public class CraftListener implements Listener {
 
     private final HoloItemsRevamp plugin;
+    private final RecipeManager recipeManager;
+    private final EnchantManager enchantManager;
 
     public CraftListener(HoloItemsRevamp plugin) {
         this.plugin = plugin;
+        this.recipeManager = this.plugin.getRecipeManager();
+        this.enchantManager = this.plugin.getEnchantManager();
+    }
+
+    @EventHandler
+    public void onCrafterCraft(CrafterCraftEvent event) {
+        final var crafter = event.getBlock();
+        if(crafter.getState() instanceof Crafter crafterState) {
+            var crafterInv = crafterState.getInventory();
+            var crafterContents = crafterInv.getStorageContents();
+            var recipe = event.getRecipe();
+            var validCraft = checkRecipeCustomItems(crafterContents, recipe);
+            event.setCancelled(!validCraft);
+        }
+        else {
+            // ...  crafter.getState() wasn't a Crafter state?
+            // just gonna cancel the event to be safe
+            event.setCancelled(true);
+        }
     }
 
     @EventHandler(ignoreCancelled = true)
-    public void onCraftItem(CraftItemEvent event) {
-        ItemStack stack = event.getCurrentItem();
-        if (CustomItemManager.isCustomItem(event.getCurrentItem()) && event.getWhoClicked() instanceof Player) {
-            //Makes the output a fresh build of the item. Means it will be owned by that player
-            event.setCurrentItem(CustomItemManager.getCustomItem(stack).buildStack((Player) event.getWhoClicked()));
-        }
+    public void onCraft(CraftItemEvent event) {
+        // Shouldn't even fire if PrepareItemCraftEvent fired properly,
+        // but I'm checking again in here just in case.
+        var contents = event.getInventory().getStorageContents();
+        var recipe = event.getRecipe();
+        var valid = checkRecipeCustomItems(Arrays.copyOfRange(contents, 1, 10), recipe);
+        event.setCancelled(!valid);
+    }
 
-        if (!RecipeManager.isManagedRecipe(event.getRecipe())) {
-            for (ItemStack ingredient : event.getInventory().getMatrix()) {
-                if (CustomItemManager.isCustomItem(ingredient)) {
-                    event.setCancelled(true);
-                }
-            }
-        } else if (RecipeManager.isHiddenRecipe(event.getRecipe())) {
-            RecipeBuilder.AdvancedRecipe recipe = RecipeManager.getAdvancedFromDummy(event.getRecipe());
-            boolean notMatch = false;
-
-            if (recipe instanceof RecipeBuilder.AdvancedShape) {
-                RecipeBuilder.AdvancedShape advancedShape = (RecipeBuilder.AdvancedShape) recipe;
-                CraftingInventory craftingInventory = event.getInventory();
-                int size = craftingInventory.getSize() == 9 ? 3 : 2;
-                int offset = 0;
-                outter:
-                for (int row = 0; row < size; row++) {
-                    for (int col = 0; col < size; col++) {
-                        int currIndex = row * size + col;
-                        if (craftingInventory.getMatrix()[currIndex] != null) {
-                            offset = currIndex - advancedShape.getFirstNotEmpty();
-                            break outter;
-                        }
-                    }
-                }
-
-                String[] shape = advancedShape.getShape();
-                ItemStack[] matrix = craftingInventory.getMatrix();
-                outter:
-                for (int row = 0; row < shape.length; row++) {
-                    for (int col = 0; col < shape[row].length(); col++) {
-                        int matrixNum = offset + (row * 3) + col;
-                        if (shape[row].charAt(col) == ' ') {
-                            if (matrix[matrixNum] != null) {
-                                notMatch = true;
-                                break outter;
-                            }
-                        } else {
-                            ItemStack craftingStack = matrix[matrixNum];
-                            if (!advancedShape.checkStack(shape[row].charAt(col), craftingStack)) {
-                                notMatch = true;
-                                break outter;
-                            }
-                        }
-                    }
-                }
-            }
-
-            if (!notMatch) {
-                ItemStack updated = recipe.getCraftModifier().create(event.getInventory().getResult(),
-                        recipe.getInputItems(event.getInventory()), recipe.buildContext(event.getInventory(), event.getClick()));
-
-                event.getInventory().setResult(updated);
-            } else {
-                event.setCancelled(true);
-            }
-        } else if (RecipeManager.isAdvancedRecipe(event.getRecipe())) {
-            RecipeBuilder.AdvancedRecipe advRecipe = RecipeManager.getAdvancedRecipe(event.getRecipe());
-
-            ItemStack updated = advRecipe.getCraftModifier().create(event.getInventory().getResult(),
-                    advRecipe.getInputItems(event.getInventory()), advRecipe.buildContext(event.getInventory(), event.getClick()));
-
-            event.getInventory().setResult(updated);
-            event.setCurrentItem(updated);
-        }
-
-        if (RecipeManager.hasNonConsumable(event.getRecipe())) {
-            Map<Integer, ItemStack> slots = new HashMap<>();
-            for (int slot = 0; slot < event.getInventory().getSize(); slot++) {
-                ItemStack slotItem = event.getInventory().getItem(slot);
-
-                if (event.getRecipe() instanceof ShapedRecipe) {
-                    for (RecipeChoice choice : ((ShapedRecipe) event.getRecipe()).getChoiceMap().values()) {
-                        if (choice instanceof NonConsumableChoice && choice.test(slotItem)) {
-                            slots.put(slot, slotItem.clone());
-                            if (event.isShiftClick()) { //If they shift click,
-                                slotItem.setAmount(64); //Allow it to craft as many as possible
-                                event.getInventory().setItem(slot, slotItem);
-                            }
-                        }
-                    }
-                } else if (event.getRecipe() instanceof ShapelessRecipe) {
-                    for (RecipeChoice choice : ((ShapelessRecipe) event.getRecipe()).getChoiceList()) {
-                        if (choice instanceof NonConsumableChoice && choice.test(slotItem)) {
-                            slots.put(slot, slotItem.clone());
-                            if (event.isShiftClick()) { //If they shift click,
-                                slotItem.setAmount(64); //Allow it to craft as many as possible
-                                event.getInventory().setItem(slot, slotItem);
-                            }
-                        }
-                    }
-                }
-            }
-
-            //1 tick later, restore the items that were removed
-            if (slots.size() > 0) {
-                new BukkitRunnable() {
-                    @Override
-                    public void run() {
-                        for (int slot : slots.keySet()) {
-                            event.getInventory().setItem(slot, slots.get(slot));
-                        }
-                    }
-                }.runTaskLater(plugin, 1L);
-            }
+    @EventHandler(ignoreCancelled = true)
+    public void onPrepareCraft(PrepareItemCraftEvent event) {
+        var contents = event.getInventory().getStorageContents();
+        var recipe = event.getRecipe();
+        var valid = checkRecipeCustomItems(Arrays.copyOfRange(contents, 1, 10), recipe);
+        if(!valid) {
+            event.getInventory().setResult(null);
         }
     }
 
-    @EventHandler
-    public void onPrepareItemCraft(PrepareItemCraftEvent event) {
-        if (!RecipeManager.isManagedRecipe(event.getRecipe())) {
-            for (ItemStack ingredient : event.getInventory().getMatrix()) {
-                if (CustomItemManager.isCustomItem(ingredient)) {
-                    event.getInventory().setResult(null); //Stops recipes using our custom items
-                }
-            }
-        } else if (RecipeManager.isHiddenRecipe(event.getRecipe())) {
-            RecipeBuilder.AdvancedRecipe recipe = RecipeManager.getAdvancedFromDummy(event.getRecipe());
-            boolean notMatch = false;
-
-            if (recipe instanceof RecipeBuilder.AdvancedShape) {
-                RecipeBuilder.AdvancedShape advancedShape = (RecipeBuilder.AdvancedShape) recipe;
-                CraftingInventory craftingInventory = event.getInventory();
-                int size = craftingInventory.getSize() == 9 ? 3 : 2;
-                int offset = 0;
-                outter:
-                for (int row = 0; row < size; row++) {
-                    for (int col = 0; col < size; col++) {
-                        int currIndex = row * size + col;
-                        if (craftingInventory.getMatrix()[currIndex] != null) {
-                            offset = currIndex - advancedShape.getFirstNotEmpty();
-                            break outter;
-                        }
-                    }
-                }
-
-                String[] shape = advancedShape.getShape();
-                ItemStack[] matrix = craftingInventory.getMatrix();
-                outter:
-                for (int row = 0; row < shape.length; row++) {
-                    for (int col = 0; col < shape[row].length(); col++) {
-                        int matrixNum = offset + (row * 3) + col;
-                        if (shape[row].charAt(col) == ' ') {
-                            if (matrix[matrixNum] != null) {
-                                notMatch = true;
-                                break outter;
-                            }
-                        } else {
-                            ItemStack craftingStack = matrix[matrixNum];
-                            if (!advancedShape.checkStack(shape[row].charAt(col), craftingStack)) {
-                                notMatch = true;
-                                break outter;
-                            }
-                        }
-                    }
-                }
+    /**
+     * Checks the custom items in a recipe. If there are custom items where they aren't allowed, returns false.
+     * Otherwise, returns true.
+     * @return Whether the recipe is valid/okay.
+     */
+    private boolean checkRecipeCustomItems(ItemStack[] contents, Recipe recipe) {
+        final List<Integer> customItemIndices = new ArrayList<>();
+        for (int i = 0; i < contents.length; i++) {
+            var stack = contents[i];
+            if(stack == null) {
+                continue;
             }
 
-            if (!notMatch) {
-                ItemStack updated = recipe.getPreviewModifier().create(event.getInventory().getResult(),
-                        recipe.getInputItems(event.getInventory()), recipe.buildContext(event.getInventory(), null));
-
-                event.getInventory().setResult(updated);
-            } else {
-                event.getInventory().setResult(null);
+            if(CustomItemManager.isCustomItem(stack)) {
+                customItemIndices.add(i);
             }
-        } else if (RecipeManager.isAdvancedRecipe(event.getRecipe())) {
-            RecipeBuilder.AdvancedRecipe advRecipe = RecipeManager.getAdvancedRecipe(event.getRecipe());
 
-            ItemStack updated = advRecipe.getPreviewModifier().create(event.getInventory().getResult(),
-                    advRecipe.getInputItems(event.getInventory()), advRecipe.buildContext(event.getInventory(), null));
-
-            event.getInventory().setResult(updated);
+            // ... Depending on SandPortal's implementation, this might be relevant?
+            // Mostly for stopping people from making sandstone blocks with them.
+            boolean hasCustomEnchantments = stack
+                    .getEnchantments().keySet().stream().anyMatch(enchantManager::isTaggedHoloEnchantment);
+            if(hasCustomEnchantments) {
+                // There might be a use for this that isn't just "Recipe is automatically invalid"
+                // but for now I'm leaving it like this.
+                return false;
+            }
         }
-    }
 
-    @EventHandler
-    public void onPlayerRecipeDiscover(PlayerRecipeDiscoverEvent event) {
-        if (RecipeManager.isHiddenRecipe(event.getRecipe())) {
-            event.setCancelled(true);
+        if(customItemIndices.isEmpty()) {
+            // no custom items in recipe so automatically valid
+            // at least, by this check
+            return true;
+        }
+
+        var registeredRecipe = recipeManager.getRegisteredRecipe(recipe);
+        if(registeredRecipe == null) {
+            // recipe is not registered but there's custom items
+            return false;
+        }
+
+        /*
+        The code below was made because I assumed when an event returns a Recipe, it returns the original recipe
+        THIS IS NOT THE CASE. The RecipeChoices I was getting were exclusively ExactChoice and MaterialChoice, even
+        if one of them was originally a CustomItemRecipeChoice.
+
+        RecipeManager was made after the code below was made - but I've left it here, so that we can still use
+        MaterialChoice in other CustomItems. Ex: use Material.TINTED_GLASS for lunarlaser without having to explicitly
+        state "and NOT the Reading Glasses holoitem"
+
+        As a result, this is tested code, but I didn't get to thoroughly test it. I've only left it here instead of
+        replacing it with "return true;" because I think this will be useful in the future, I just don't know when.
+         */
+        if(registeredRecipe instanceof ShapedRecipe shapedRecipe) {
+            // needed so that if a 2x2 recipe is in the bottom-right
+            // it gets "moved" to the top-left
+            int minRow = 2;
+            int minCol = 2;
+
+            for (int i = 0; i < contents.length; i++) {
+                var stack = contents[i];
+                if(stack.isEmpty()) {
+                    int row = i/3;
+                    int col = i%3;
+                    minRow = Math.min(row, minRow);
+                    minCol = Math.min(col, minCol);
+                }
+            }
+
+            for(Integer customItemIndex : customItemIndices) {
+                int row = (customItemIndex/3) - minRow;
+                int col = (customItemIndex%3) - minCol;
+                Character choiceChar = shapedRecipe.getShape()[row].charAt(col);
+                var choice = shapedRecipe.getChoiceMap().get(choiceChar);
+                if(!(choice instanceof CustomItemRecipeChoice)) {
+                    // this is a non-custom-item slot with a custom item in it
+                    return false;
+                }
+            }
+            // all slots passed
+            return true;
+        }
+        else {
+            // TODO: Implement ShapelessRecipe checks.
+            // Recipe is not an instance of CraftingRecipe
+            // uh, maybe it's a furnace recipe (i know emerald leaf or whatever gnaw requires is a furnace recipe)
+            // either way, point is it's not implemented
+            plugin.getLogger().warning("CraftListener.checkRecipeCustomItems called with unknown recipe type");
+            plugin.getLogger().warning("Recipe class: " + recipe.getClass().toGenericString());
+            plugin.getLogger().warning("Recipe toString value: " + recipe);
+            return false;
         }
     }
 }

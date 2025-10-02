@@ -1,16 +1,14 @@
 package xyz.holocons.mc.holoitemsrevamp.item;
 
+import org.bukkit.NamespacedKey;
 import xyz.holocons.mc.holoitemsrevamp.HoloItemsRevamp;
 
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
-import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.Recipe;
 import org.bukkit.inventory.ShapedRecipe;
 
-import com.strangeone101.holoitemsapi.enchantment.CustomEnchantment;
-import com.strangeone101.holoitemsapi.enchantment.EnchantManager;
 import com.strangeone101.holoitemsapi.enchantment.Enchantable;
 import com.strangeone101.holoitemsapi.item.CustomItem;
 
@@ -28,11 +26,9 @@ public class MementoItem extends CustomItem implements Enchantable {
         Component.text("Keep your items on death. Consumable.", NamedTextColor.DARK_PURPLE)
     );
 
-    private final EnchantManager enchantManager;
-
     public MementoItem(HoloItemsRevamp plugin) {
         super(plugin, name, material, displayName, lore);
-        this.enchantManager = plugin.getEnchantManager();
+        this.setStackSize(99);
         this.register();
     }
 
@@ -40,9 +36,9 @@ public class MementoItem extends CustomItem implements Enchantable {
     protected Recipe getRecipe() {
         final var recipe = new ShapedRecipe(getKey(), buildStack(null));
         recipe.shape(
-            "AAA",
-            "ABA",
-            "AAA"
+                "AAA",
+                "ABA",
+                "AAA"
         );
         recipe.setIngredient('A', Material.ENDER_CHEST);
         recipe.setIngredient('B', Material.END_CRYSTAL);
@@ -50,8 +46,8 @@ public class MementoItem extends CustomItem implements Enchantable {
     }
 
     @Override
-    public Enchantment getEnchantment() {
-        return CustomEnchantment.getByKey(getKey());
+    public NamespacedKey getEnchantmentKey() {
+        return getKey();
     }
 
     @Override
@@ -61,8 +57,6 @@ public class MementoItem extends CustomItem implements Enchantable {
 
         if (enchantedMeta.addEnchant(getEnchantment(), 1, false)) {
             enchantedStack.setItemMeta(enchantedMeta);
-            enchantManager.removeCustomEnchantmentLore(enchantedStack);
-            enchantManager.applyCustomEnchantmentLore(enchantedStack);
             return enchantedStack;
         } else {
             return null;

@@ -34,6 +34,7 @@ import com.strangeone101.holoitemsapi.statistic.StatsWrapper;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.TextReplacementConfig;
 import net.kyori.adventure.text.format.NamedTextColor;
+import org.jetbrains.annotations.Nullable;
 import xyz.holocons.mc.holoitemsrevamp.Util;
 
 /**
@@ -49,11 +50,12 @@ public class CustomItem implements Keyed {
     private Component displayName;
     private List<Component> lore;
     private int cooldown = 0;
-    private boolean stackable = true;
+    private Integer stackSize = null;
     private Set<Property<?>> properties = new HashSet<>();
     private Set<StatsWrapper<?>> statGoals;
     private int hex;
     private ItemFlag[] flags;
+    private boolean bookLike;
 
     private Map<String, Function<PersistentDataContainer, Component>> variables = new HashMap<>();
 
@@ -75,10 +77,6 @@ public class CustomItem implements Keyed {
      */
     public final String getInternalName() {
         return getKey().getKey();
-    }
-
-    protected Recipe getRecipe() {
-        return null;
     }
 
     /**
@@ -108,18 +106,17 @@ public class CustomItem implements Keyed {
 
         if (customModelID != 0) meta.setCustomModelData(customModelID); //Used for resource packs
 
-        if (properties.contains(Keys.OWNER) && player != null) {
-            Keys.OWNER.set(meta.getPersistentDataContainer(), player.getUniqueId());
-        }
-
         if (properties.contains(Keys.COOLDOWN)) {
             Keys.COOLDOWN.set(meta.getPersistentDataContainer(), 0L);
         }
 
         Keys.ITEM_ID.set(meta.getPersistentDataContainer(), getInternalName());
+        Keys.BOOK_LIKE.set(meta.getPersistentDataContainer(), this.getBookLike());
 
         // If the item shouldn't be stackable, add a random INTEGER to the NBT
-        Keys.UNSTACKABLE.set(meta.getPersistentDataContainer(), !isStackable());
+        if(this.getStackSize() != null){
+            meta.setMaxStackSize(this.getStackSize());
+        }
 
         if (flags != null && flags.length > 0) meta.addItemFlags(flags);
 
@@ -130,56 +127,6 @@ public class CustomItem implements Keyed {
         }
 
         return stack;
-    }
-
-    public ItemStack updateStack(Player player, ItemStack itemStack) {
-        var meta = itemStack.getItemMeta();
-
-        if (getMaterial() != itemStack.getType() && meta instanceof Damageable originalDamageable) {
-            int damage = originalDamageable.getDamage();
-            itemStack = buildStack(player);
-            meta = itemStack.getItemMeta();
-            if (meta instanceof Damageable newDamageable) {
-                newDamageable.setDamage(damage);
-            }
-        }
-
-        if (properties.contains(Keys.OWNER) && player != null) {
-            var uuid = Keys.OWNER.get(meta.getPersistentDataContainer());
-            if (uuid == null) { // There should be a UUID, so we'll add the player's UUID as a failsafe
-                Keys.OWNER.set(meta.getPersistentDataContainer(), player.getUniqueId());
-            }
-        }
-
-        if (properties.contains(Keys.UNSTACKABLE)) {
-            if (!Keys.UNSTACKABLE.has(meta.getPersistentDataContainer())) {
-                Keys.UNSTACKABLE.set(meta.getPersistentDataContainer(), true);
-            }
-        } else {
-            if (Keys.UNSTACKABLE.has(meta.getPersistentDataContainer())) {
-                Keys.UNSTACKABLE.set(meta.getPersistentDataContainer(), false);
-            }
-        }
-
-        var lore = new ArrayList<Component>();
-
-        for (var line : getLore()) {
-            lore.add(replaceVariables(line, meta.getPersistentDataContainer()));
-        }
-
-        if (meta instanceof LeatherArmorMeta) {
-            ((LeatherArmorMeta) meta).setColor(Color.fromRGB(hex));
-        } else if (meta instanceof PotionMeta) {
-            ((PotionMeta) meta).setColor(Color.fromRGB(hex));
-        }
-
-        itemStack.setItemMeta(meta);
-
-        if (this instanceof Enchantable enchantable) {
-            itemStack = enchantable.applyEnchantment(itemStack);
-        }
-
-        return itemStack;
     }
 
     /**
@@ -209,6 +156,15 @@ public class CustomItem implements Keyed {
 
         itemStack.setItemMeta(itemMeta);
         return itemStack;
+    }
+
+    /**
+     * Called by CustomItemManager on every CustomItem.
+     * If non-null, the recipe is added to the server.
+     * @return A recipe to add.
+     */
+    protected @Nullable Recipe getRecipe() {
+        return null;
     }
 
     /**
@@ -385,20 +341,31 @@ public class CustomItem implements Keyed {
     }
 
     /**
-     * If the item is stackable
-     * @return True if stackable
+     * The stack size of the item, or null if using the default.
+     * @return the stack size, or null
      */
-    public boolean isStackable() {
-        return stackable && material.getMaxStackSize() != 1;
+    public Integer getStackSize() {
+        return stackSize;
     }
 
     /**
-     * Whether the item can be stacked
-     * @param stackable Stackable
+     * The stack size of the item, or the default stack size if it's not defined.
+     * @return the stack size
+     */
+    public int getStackSizeOrDefault() {
+        // Note: I did it this way because Registry does it this way (though with getOrThrow).
+        // https://jd.papermc.io/paper/1.21.8/org/bukkit/Registry.html#get(org.bukkit.NamespacedKey)
+        // I'm not 100% sure if this is the best way, though.
+        return stackSize != null ? stackSize : material.getMaxStackSize();
+    }
+
+    /**
+     * Sets the stack size of the item. Feeding null will reset to the default stack size.
+     * @param stackSize The new stack size
      * @return Itself
      */
-    public CustomItem setStackable(boolean stackable) {
-        this.stackable = stackable;
+    public CustomItem setStackSize(Integer stackSize) {
+        this.stackSize = stackSize;
         return this;
     }
 
@@ -427,7 +394,7 @@ public class CustomItem implements Keyed {
                 ", textureID=" + customModelID +
                 ", material=" + material +
                 ", displayName='" + displayName + "\'\u00A7r'" +
-                ", stackable=" + stackable +
+                ", stackSize=" + stackSize +
                 ", properties=" + properties +
                 '}';
     }
@@ -481,5 +448,13 @@ public class CustomItem implements Keyed {
     public CustomItem setFlags(ItemFlag... flags) {
         this.flags = flags;
         return this;
+    }
+
+    public boolean getBookLike() {
+        return bookLike;
+    }
+
+    public void setBookLike(boolean bookLike) {
+        this.bookLike = bookLike;
     }
 }

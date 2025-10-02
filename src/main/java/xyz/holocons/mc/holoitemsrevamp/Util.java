@@ -56,7 +56,8 @@ public final class Util {
     /**
      * Returns a player head with the base64 texture. Mostly used for GUI.
      *
-     * @param base64 A base 64 string that contains ONLY the texture
+     * @param url A url from textures.minecraft.net that represents the skin texture, as stored on Mojang servers.
+     *            <a href="https://minecraft.wiki/w/Mojang_API#Query_player's_skin_and_cape">Read more here.</a>
      * @return The ItemStack player head
      */
     public static ItemStack getPlayerHeadFromSkinUrl(String url) {
